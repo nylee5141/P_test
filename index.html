@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>직장인 마음 쉼표</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fbf7',
+                            100: '#dbf5eb',
+                            200: '#bae8d6',
+                            300: '#8dd4be',
+                            400: '#5ab89d',
+                            500: '#389d81',
+                            600: '#287c67',
+                            700: '#216353',
+                            800: '#1d4f43',
+                            900: '#194239',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Pretendard"', '"Inter"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Phosphor Icons CDN -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Web Fonts (Pretendard) -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        /* 스크롤바 디자인 커스텀 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* 타이핑 로딩 애니메이션 */
+        .loading-dot {
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex items-center justify-center bg-slate-50 sm:p-4 text-slate-800 relative">
+
+        <!-- Sidebar (History) -->
+        <div id="history-sidebar" class="fixed inset-y-0 left-0 w-64 bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 z-50 flex flex-col sm:absolute sm:rounded-l-2xl">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-brand-50">
+                <h2 class="font-bold text-slate-800 flex items-center gap-2"><i class="ph-fill ph-book-bookmark text-brand-600"></i> 상담 기록</h2>
+                <button id="btn-close-sidebar" class="text-slate-500 hover:text-slate-800 p-1 rounded-md hover:bg-slate-200 transition-colors">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+            <div id="history-list" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+                <!-- History items will be injected here -->
+                <p class="text-sm text-slate-400 text-center mt-4">저장된 기록이 없습니다.</p>
+            </div>
+        </div>
+        <!-- Overlay -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/20 opacity-0 pointer-events-none transition-opacity duration-300 z-40 sm:hidden"></div>
+    
+        <!-- Main App Container -->
+        <main class="w-full h-full max-w-md bg-white shadow-2xl overflow-hidden flex flex-col sm:rounded-2xl sm:h-[90vh] sm:border sm:border-slate-200 relative z-10">
+            
+            <!-- Header -->
+            <header class="bg-white px-5 py-4 flex items-center justify-between border-b border-slate-100 z-10 shrink-0 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <button id="btn-open-sidebar" class="text-slate-400 hover:text-brand-600 transition-colors p-2 -ml-2 rounded-full hover:bg-slate-50">
+                        <i class="ph ph-list text-xl"></i>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center">
+                            <i class="ph-fill ph-plant text-brand-600 text-lg"></i>
+                        </div>
+                        <h1 class="font-bold text-slate-800 text-lg tracking-tight">직장인 마음 쉼표</h1>
+                    </div>
+                </div>
+                <button id="btn-new-chat" title="새 상담 시작" class="text-slate-400 hover:text-brand-600 transition-colors p-2 rounded-full hover:bg-slate-50">
+                    <i class="ph ph-plus text-xl"></i>
+                </button>
+            </header>
+
+            <!-- Chat Area -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 flex flex-col scroll-smooth">
+                <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-plant text-brand-600 text-lg"></i>
+                </div>
+                <div class="flex flex-col gap-1 max-w-[75%]">
+                    <div class="px-4 py-2.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 text-slate-700 text-sm shadow-sm leading-relaxed">
+                        안녕하세요! 오늘 하루는 어떠셨나요?<br>어떤 고민이든 편하게 이야기해 주세요.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="bg-white border-t border-slate-100 p-3 pb-safe z-10 shrink-0">
+            <!-- Quick Suggestions -->
+            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x">
+                <button data-text="요즘 업무가 너무 많아서 힘들어요." class="quick-suggestion-btn whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[11px] text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition-colors snap-start">업무 과다 😫</button>
+                <button data-text="직장 동료와의 관계 때문에 스트레스 받아요." class="quick-suggestion-btn whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[11px] text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition-colors snap-start">인간관계 👥</button>
+                <button data-text="번아웃이 온 것 같아요. 다 쉬고 싶어요." class="quick-suggestion-btn whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[11px] text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition-colors snap-start">번아웃 🔋</button>
+            </div>
+            
+            <!-- Category & Input -->
+            <div class="flex items-end gap-2 bg-slate-50 rounded-2xl p-1.5 border border-slate-200 focus-within:border-brand-400 focus-within:ring-1 focus-within:ring-brand-400 transition-all">
+                <div class="relative shrink-0 mb-1 ml-1 hidden sm:block">
+                    <select id="category-select" class="appearance-none bg-white border border-slate-200 text-slate-600 text-xs rounded-xl pl-2 pr-6 py-1.5 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 cursor-pointer shadow-sm">
+                        <option value="일반">일반</option>
+                        <option value="인간관계">인간관계</option>
+                        <option value="업무스트레스">업무</option>
+                        <option value="커리어">커리어</option>
+                        <option value="번아웃">번아웃</option>
+                    </select>
+                    <i class="ph-fill ph-caret-down absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                </div>
+
+                <textarea id="user-input" rows="1" placeholder="마음에 담아둔 이야기를 들려주세요..." class="w-full bg-transparent resize-none max-h-32 text-sm text-slate-700 placeholder-slate-400 focus:outline-none px-2 py-2.5"></textarea>
+                
+                <button id="send-btn" class="shrink-0 w-9 h-9 rounded-xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center transition-colors shadow-sm mb-0.5 mr-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ph-fill ph-paper-plane-right text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- [3] JAVASCRIPT -->
+    <script type="module">
+        // --- 앱 상태 변수 초기화 ---
+        let isWaitingForResponse = false;
+        let currentSessionId = Date.now().toString();
+        let sessionMessages = [];
+        let chatHistory = [];
+        
+        let userInput, chatContainer;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            userInput = document.getElementById('user-input');
+            chatContainer = document.getElementById('chat-container');
+            const sendBtnEl = document.getElementById('send-btn');
+            
+            userInput.addEventListener('input', function() {
+                autoResize(this);
+            });
+
+            userInput.addEventListener('keydown', function(event) {
+                handleKeyDown(event);
+            });
+
+            sendBtnEl.addEventListener('click', function() {
+                sendMessage();
+            });
+
+            // 추천 질문(Quick suggestions) 클릭 이벤트
+            document.querySelectorAll('.quick-suggestion-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    insertText(this.getAttribute('data-text'));
+                });
+            });
+
+            // UI 버튼 이벤트 (사이드바 및 새 채팅)
+            document.getElementById('btn-open-sidebar').addEventListener('click', toggleHistory);
+            document.getElementById('btn-close-sidebar').addEventListener('click', toggleHistory);
+            document.getElementById('sidebar-overlay').addEventListener('click', toggleHistory);
+            document.getElementById('btn-new-chat').addEventListener('click', clearChat);
+
+            // 초기 구동 시 로컬스토리지에서 기록 불러오기
+            loadHistory(); 
+        });
+
+        const autoResize = function(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+            if (textarea.scrollHeight > 128) { // max-h-32
+                textarea.style.overflowY = 'auto';
+            } else {
+                textarea.style.overflowY = 'hidden';
+            }
+        }
+
+        const handleKeyDown = function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        const insertText = function(text) { 
+            userInput.value = text;
+            autoResize(userInput);
+            userInput.focus();
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addLoadingIndicator() {
+            const loadingId = 'loading-' + Date.now();
+            const msgDiv = document.createElement('div');
+            msgDiv.id = loadingId;
+            msgDiv.className = 'flex items-end gap-2 animate-fade-in-up mt-3';
+            msgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-plant text-brand-600 text-lg"></i>
+                </div>
+                <div class="flex flex-col gap-1 max-w-[75%]">
+                    <div class="px-4 py-2.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 shadow-sm flex items-center gap-1 h-[42px]">
+                        <div class="w-1.5 h-1.5 bg-brand-400 rounded-full loading-dot"></div>
+                        <div class="w-1.5 h-1.5 bg-brand-400 rounded-full loading-dot"></div>
+                        <div class="w-1.5 h-1.5 bg-brand-400 rounded-full loading-dot"></div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+            return loadingId;
+        }
+
+        const fetchGeminiResponse = async function(text, loadingId) {
+            isWaitingForResponse = true;
+            
+            // 데모용 가짜 지연시간 및 응답 (실제 Gemini API 연동 시 이 부분을 교체합니다)
+            setTimeout(() => {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                const responses = [
+                    "정말 힘드셨겠어요. 제가 조금이나마 위로가 되어 드릴게요.",
+                    "그런 일이 있었군요. 많이 답답하셨을 텐데, 꿋꿋하게 잘 견뎌내셨어요.",
+                    "충분히 그럴 수 있는 상황이에요. 자신을 너무 자책하지 마셨으면 좋겠습니다.",
+                    "오늘 하루도 정말 고생 많으셨습니다. 맛있는 저녁 드시고 푹 쉬시는 걸 추천해요."
+                ];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                
+                const timeStr = new Date().toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'});
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'flex items-end gap-2 animate-fade-in-up mt-3';
+                msgDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                        <i class="ph-fill ph-plant text-brand-600 text-lg"></i>
+                    </div>
+                    <div class="flex flex-col gap-1 max-w-[75%]">
+                        <div class="px-4 py-2.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 text-slate-700 text-sm shadow-sm leading-relaxed">
+                            ${randomResponse}
+                        </div>
+                        <span class="text-[10px] text-slate-400 mb-1 shrink-0">${timeStr}</span>
+                    </div>
+                `;
+                chatContainer.appendChild(msgDiv);
+                scrollToBottom();
+                
+                // 봇의 응답도 세션에 기록
+                sessionMessages.push({ role: 'bot', content: randomResponse, timestamp: Date.now() });
+                saveSession(); 
+                
+                isWaitingForResponse = false;
+                autoResize(userInput);
+                userInput.focus();
+            }, 1500);
+        }
+
+        const sendMessage = async function() {
+            const text = userInput.value.trim();
+            if (!text || isWaitingForResponse) return;
+
+            const timeStr = new Date().toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'});
+            
+            // 사용자 메시지 UI 렌더링
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'flex items-end justify-end gap-2 animate-fade-in-up mt-3 mb-1';
+            msgDiv.innerHTML = `
+                <div class="flex items-end gap-2 justify-end w-full">
+                    <span class="text-[10px] text-slate-400 mb-1 shrink-0">${timeStr}</span>
+                    <div class="px-4 py-2.5 rounded-2xl rounded-br-none bg-brand-500 text-white text-sm shadow-sm leading-relaxed max-w-[75%] break-words">
+                        ${text.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(msgDiv);
+            
+            // 사용자 메시지를 세션에 저장
+            sessionMessages.push({ role: 'user', content: text, timestamp: Date.now() });
+            
+            userInput.value = '';
+            autoResize(userInput);
+            scrollToBottom();
+            
+            const loadingId = addLoadingIndicator();
+            await fetchGeminiResponse(text, loadingId);
+        }
+
+        const clearChat = function() {
+            chatContainer.innerHTML = `
+                <div class="flex items-end gap-2 animate-fade-in-up mt-2">
+                    <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                        <i class="ph-fill ph-plant text-brand-600 text-lg"></i>
+                    </div>
+                    <div class="flex flex-col gap-1 max-w-[75%]">
+                        <div class="px-4 py-2.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 text-slate-700 text-sm shadow-sm leading-relaxed">
+                            안녕하세요! 오늘 하루는 어떠셨나요?<br>어떤 고민이든 편하게 이야기해 주세요.
+                        </div>
+                    </div>
+                </div>
+            `;
+            sessionMessages = [];
+            currentSessionId = Date.now().toString();
+            if(!document.getElementById('history-sidebar').classList.contains('-translate-x-full')) {
+                toggleHistory();
+            }
+        }
+
+        const toggleHistory = function() {
+            const sidebar = document.getElementById('history-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('pointer-events-none');
+                overlay.classList.add('opacity-100');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('pointer-events-none');
+                overlay.classList.remove('opacity-100');
+            }
+        }
+
+        const saveSession = function() {
+            if (sessionMessages.length === 0) return;
+            
+            const categoryEl = document.getElementById('category-select');
+            const category = categoryEl ? categoryEl.value : '일반';
+            
+            // 첫 번째 사용자 메시지를 제목으로 설정
+            const firstUserMessage = sessionMessages.find(m => m.role === 'user');
+            const title = firstUserMessage ? firstUserMessage.content.substring(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '') : '새로운 상담';
+            
+            const sessionData = {
+                id: currentSessionId,
+                title: title,
+                category: category,
+                date: new Date().toISOString(),
+                messages: sessionMessages
+            };
+            
+            // 브라우저 로컬 스토리지에 저장
+            let sessions = JSON.parse(localStorage.getItem('office-mind-care-sessions') || '[]');
+            const existingIdx = sessions.findIndex(s => s.id === currentSessionId);
+            if(existingIdx >= 0) {
+                sessions[existingIdx] = sessionData; // 덮어쓰기
+            } else {
+                sessions.push(sessionData); // 새 기록
+            }
+            localStorage.setItem('office-mind-care-sessions', JSON.stringify(sessions));
+            loadHistory();
+        };
+
+        const deleteSession = function(sessionId) {
+            let sessions = JSON.parse(localStorage.getItem('office-mind-care-sessions') || '[]');
+            sessions = sessions.filter(s => s.id !== sessionId);
+            localStorage.setItem('office-mind-care-sessions', JSON.stringify(sessions));
+            
+            // 현재 활성화된 채팅방을 삭제한 경우 초기화
+            if (currentSessionId === sessionId) {
+                clearChat();
+            }
+            loadHistory();
+        };
+
+        const loadHistory = function() {
+            const historyList = document.getElementById('history-list');
+            if(!historyList) return;
+
+            let sessions = JSON.parse(localStorage.getItem('office-mind-care-sessions') || '[]');
+            sessions.sort((a, b) => new Date(b.date) - new Date(a.date)); // 최신순으로 정렬
+
+            if (sessions.length === 0) {
+                historyList.innerHTML = '<p class="text-sm text-slate-400 text-center mt-4">저장된 기록이 없습니다.</p>';
+                return;
+            }
+
+            historyList.innerHTML = '';
+            sessions.forEach(record => {
+                const dateObj = new Date(record.date);
+                const dateStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'})}`;
+                
+                const item = document.createElement('div');
+                item.className = 'group relative p-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-brand-300 cursor-pointer transition-colors';
+                item.innerHTML = `
+                    <div class="flex justify-between items-start mb-1.5 pr-8">
+                        <span class="text-[11px] font-semibold px-2 py-0.5 bg-brand-50 text-brand-700 rounded-md shadow-sm border border-brand-100">${record.category}</span>
+                        <span class="text-[10px] text-slate-400">${dateStr}</span>
+                    </div>
+                    <p class="text-sm text-slate-700 truncate pr-8">${record.title}</p>
+                    
+                    <button class="delete-btn absolute top-1/2 -translate-y-1/2 right-2 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg sm:opacity-0 sm:group-hover:opacity-100 transition-all z-10" title="기록 삭제">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                `;
+                
+                // 기록 열기 이벤트
+                item.addEventListener('click', () => viewPastSession(record));
+                
+                // 휴지통 삭제 이벤트 (이벤트 버블링 방지)
+                item.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteSession(record.id);
+                });
+                
+                historyList.appendChild(item);
+            });
+        }
+
+        const viewPastSession = function(record) {
+            toggleHistory(); // 사이드바 닫기
+            currentSessionId = record.id;
+            sessionMessages = record.messages || [];
+            
+            chatContainer.innerHTML = '';
+            
+            if (sessionMessages.length === 0) {
+                clearChat();
+                return;
+            }
+
+            // 저장된 메시지 배열을 순회하며 화면에 렌더링
+            sessionMessages.forEach(msg => {
+                const dateObj = new Date(msg.timestamp || Date.now());
+                const timeStr = dateObj.toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'});
+                const msgDiv = document.createElement('div');
+                
+                if (msg.role === 'user') {
+                    msgDiv.className = 'flex items-end justify-end gap-2 animate-fade-in-up mt-3 mb-1';
+                    msgDiv.innerHTML = `
+                        <div class="flex items-end gap-2 justify-end w-full">
+                            <span class="text-[10px] text-slate-400 mb-1 shrink-0">${timeStr}</span>
+                            <div class="px-4 py-2.5 rounded-2xl rounded-br-none bg-brand-500 text-white text-sm shadow-sm leading-relaxed max-w-[75%] break-words">
+                                ${msg.content.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    msgDiv.className = 'flex items-end gap-2 animate-fade-in-up mt-3';
+                    msgDiv.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                            <i class="ph-fill ph-plant text-brand-600 text-lg"></i>
+                        </div>
+                        <div class="flex flex-col gap-1 max-w-[75%]">
+                            <div class="px-4 py-2.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 text-slate-700 text-sm shadow-sm leading-relaxed">
+                                ${msg.content}
+                            </div>
+                            <span class="text-[10px] text-slate-400 mb-1 shrink-0">${timeStr}</span>
+                        </div>
+                    `;
+                }
+                chatContainer.appendChild(msgDiv);
+            });
+            scrollToBottom();
+        }
+    </script>
+</body>
+</html>
